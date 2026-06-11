@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-st.set_page_config(page_title="AgroBasis PRO | Complexo Soja", layout="wide")
+st.set_page_config(page_title="USDA Complexo Soja", layout="wide")
 
 ARQUIVO = "psd_oilseeds.csv"
 
@@ -17,7 +17,7 @@ PRODUTOS_SOJA = [
     "Meal, Soybean",
     "Meal, Soybean (Local)",
     "Oil, Soybean",
-    "Oil, Soybean (Local)"
+    "Oil, Soybean (Local)",
 ]
 
 TRAD_PROD = {
@@ -59,10 +59,12 @@ TRAD_PAIS = {
     "Ukraine": "Ucrânia",
 }
 
+
 def fmt(v, casas=1):
     if v is None or pd.isna(v):
         return "-"
     return f"{v:,.{casas}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 
 @st.cache_data(ttl=3600)
 def carregar_dados():
@@ -74,7 +76,7 @@ def carregar_dados():
         "Market_Year": "Year",
         "Attribute_Description": "Attribute",
         "Unit_Description": "Unit",
-        "Value": "Value"
+        "Value": "Value",
     })
 
     df = df[["Commodity", "Country", "Year", "Attribute", "Unit", "Value"]].copy()
@@ -90,21 +92,31 @@ def carregar_dados():
 
     df = df[df["Commodity"].isin(PRODUTOS_SOJA)].copy()
 
-    if "World" in df["Country"].unique():
-        mundo = df[df["Country"] == "World"].copy()
-        mundo["Country"] = "Mundo"
-        df = df[df["Country"] != "World"]
-        df = pd.concat([df, mundo], ignore_index=True)
-
     df["Produto"] = df["Commodity"].map(TRAD_PROD).fillna(df["Commodity"])
     df["País"] = df["Country"].map(TRAD_PAIS).fillna(df["Country"])
     df["Indicador"] = df["Attribute"].map(TRAD_ATTR).fillna(df["Attribute"])
 
+    # Mundo: usa o dado oficial World quando existir. Se não existir, compila os países.
+    tem_world = (df["Country"] == "World").any()
+    if tem_world:
+        df.loc[df["Country"] == "World", "Country"] = "Mundo"
+        df.loc[df["Country"] == "Mundo", "País"] = "Mundo"
+    else:
+        mundo = (
+            df.groupby(["Commodity", "Produto", "Year", "Attribute", "Indicador", "Unit"], as_index=False)["Value"]
+            .sum()
+        )
+        mundo["Country"] = "Mundo"
+        mundo["País"] = "Mundo"
+        df = pd.concat([df, mundo], ignore_index=True)
+
     return df
+
 
 def valor(base, attr):
     s = base[base["Attribute"] == attr].sort_values("Year")
     return None if s.empty else s["Value"].iloc[-1]
+
 
 def variacao(base, attr):
     s = base[base["Attribute"] == attr].sort_values("Year")
@@ -117,6 +129,7 @@ def variacao(base, attr):
     sinal = "+" if var >= 0 else ""
     return f"{sinal}{var:.1f}% vs ano anterior".replace(".", ",")
 
+
 def cagr(base, attr):
     s = base[base["Attribute"] == attr].sort_values("Year")
     if len(s) < 2:
@@ -126,6 +139,7 @@ def cagr(base, attr):
     if ini <= 0 or anos <= 0:
         return None
     return ((fim / ini) ** (1 / anos) - 1) * 100
+
 
 def aplicar_layout(fig, h=500):
     fig.update_layout(
@@ -137,9 +151,10 @@ def aplicar_layout(fig, h=500):
         xaxis=dict(color="#ffffff", gridcolor="rgba(255,255,255,0.25)"),
         yaxis=dict(color="#ffffff", gridcolor="rgba(255,255,255,0.25)"),
         legend=dict(font=dict(color="#ffffff")),
-        height=h
+        height=h,
     )
     return fig
+
 
 st.markdown("""
 <style>
@@ -149,23 +164,15 @@ st.markdown("""
 h1, h2, h3, h4, h5, h6,
 [data-testid="stMarkdownContainer"],
 [data-testid="stMarkdownContainer"] p,
-label {
-    color:#ffffff !important;
-}
+label { color:#ffffff !important; }
 
 .stSelectbox label, .stSlider label, .stMultiSelect label {
     color:#ffffff !important;
     font-weight:700;
 }
 
-[data-baseweb="select"] div {
-    color:#111827 !important;
-}
-
-[data-baseweb="select"] {
-    background:#f8fafc !important;
-    border-radius:10px;
-}
+[data-baseweb="select"] div { color:#111827 !important; }
+[data-baseweb="select"] { background:#f8fafc !important; border-radius:10px; }
 
 .card {
     padding:20px;
@@ -174,53 +181,22 @@ label {
     box-shadow:0px 6px 22px rgba(0,0,0,0.35);
     min-height:125px;
 }
-
 .card-green { background:linear-gradient(135deg,#064E3B,#16A34A); }
 .card-blue { background:linear-gradient(135deg,#1E3A8A,#2563EB); }
 .card-orange { background:linear-gradient(135deg,#92400E,#D97706); }
 .card-dark { background:linear-gradient(135deg,#111827,#334155); }
-
-.card-title {
-    color:white !important;
-    font-size:13px;
-    opacity:.95;
-    text-transform:uppercase;
-    letter-spacing:.05em;
-    font-weight:800;
-}
-
-.card-value {
-    color:white !important;
-    font-size:29px;
-    font-weight:900;
-    margin-top:6px;
-}
-
-.card-delta {
-    color:white !important;
-    font-size:12px;
-    opacity:.95;
-    margin-top:6px;
-}
-
-.insight-box {
-    background:#111827;
-    border:1px solid #334155;
-    padding:20px;
-    border-radius:18px;
-    color:white;
-}
-
-.insight-box p {
-    color:#e5e7eb !important;
-    line-height:1.65;
-}
+.card-title { color:white !important; font-size:13px; opacity:.95; text-transform:uppercase; letter-spacing:.05em; font-weight:800; }
+.card-value { color:white !important; font-size:29px; font-weight:900; margin-top:6px; }
+.card-delta { color:white !important; font-size:12px; opacity:.95; margin-top:6px; }
+.insight-box { background:#111827; border:1px solid #334155; padding:20px; border-radius:18px; color:white; }
+.insight-box p { color:#e5e7eb !important; line-height:1.65; }
 </style>
 """, unsafe_allow_html=True)
 
+
 df = carregar_dados()
 
-st.title("🌎 AgroBasis PRO — Complexo Soja Global")
+st.title("🌎 USDA Complexo Soja")
 st.caption("USDA PSD | Soja em grão, farelo e óleo | Produção, consumo, esmagamento, exportações, estoques, estoque/uso, market share e ranking mundial")
 
 produtos = sorted(df["Produto"].dropna().unique())
@@ -231,15 +207,12 @@ c1, c2, c3, c4 = st.columns([1.2, 1.2, 1.2, 1.4])
 
 with c1:
     produto = st.selectbox("Produto", produtos, index=produtos.index("Soja em Grão") if "Soja em Grão" in produtos else 0)
-
 with c2:
     pais = st.selectbox("País / Região", paises, index=0)
-
 with c3:
     indicador = st.selectbox("Indicador principal", indicadores, index=indicadores.index("Produção") if "Produção" in indicadores else 0)
 
 base_inicial = df[(df["Produto"] == produto) & (df["País"] == pais)].copy()
-
 anos = sorted(base_inicial["Year"].dropna().unique())
 
 if not anos:
@@ -250,7 +223,6 @@ with c4:
     ano_ini, ano_fim = st.select_slider("Período", options=anos, value=(anos[0], anos[-1]))
 
 base = base_inicial[(base_inicial["Year"] >= ano_ini) & (base_inicial["Year"] <= ano_fim)].copy()
-
 attr_indicador = base[base["Indicador"] == indicador]["Attribute"].iloc[0] if not base[base["Indicador"] == indicador].empty else "Production"
 
 producao = valor(base, "Production")
@@ -277,7 +249,6 @@ cards = [
 ]
 
 cols = st.columns(4)
-
 for i, (titulo, v, attr, unid, classe) in enumerate(cards):
     with cols[i % 4]:
         delta = variacao(base, attr) if attr else "Período selecionado"
@@ -295,7 +266,6 @@ tabs = st.tabs(["📈 Visão Executiva", "⚖️ Balanço", "🌍 Market Share",
 
 with tabs[0]:
     col_a, col_b = st.columns([2, 1])
-
     with col_a:
         base_graf = base[base["Indicador"] == indicador].sort_values("Year")
         fig = px.line(base_graf, x="Year", y="Value", markers=True, title=f"Evolução — {indicador} | {produto} | {pais}")
@@ -314,18 +284,9 @@ with tabs[0]:
         """, unsafe_allow_html=True)
 
     st.subheader("Comparação internacional")
-
     padrao = [p for p in ["Mundo", "Brasil", "Estados Unidos", "Argentina", "China"] if p in paises]
     paises_comp = st.multiselect("Países/regiões para comparação", paises, default=padrao)
-
-    comp = df[
-        (df["Produto"] == produto) &
-        (df["País"].isin(paises_comp)) &
-        (df["Indicador"] == indicador) &
-        (df["Year"] >= ano_ini) &
-        (df["Year"] <= ano_fim)
-    ].copy()
-
+    comp = df[(df["Produto"] == produto) & (df["País"].isin(paises_comp)) & (df["Indicador"] == indicador) & (df["Year"] >= ano_ini) & (df["Year"] <= ano_fim)].copy()
     fig_comp = px.line(comp, x="Year", y="Value", color="País", markers=True, title=f"Comparativo Internacional — {indicador} | {produto}")
     fig_comp.update_xaxes(title_text="Ano")
     fig_comp.update_yaxes(title_text="Valor")
@@ -333,77 +294,50 @@ with tabs[0]:
 
 with tabs[1]:
     st.subheader("Balanço de Oferta e Demanda")
-
     attrs = ["Beginning Stocks", "Production", "Imports", "Total Supply", "Crush", "Domestic Consumption", "Exports", "Ending Stocks"]
     bal = base[base["Attribute"].isin(attrs)].copy()
-
     fig_bal = px.line(bal, x="Year", y="Value", color="Indicador", markers=True, title=f"Balanço USDA — {produto} | {pais}")
     st.plotly_chart(aplicar_layout(fig_bal, 540), use_container_width=True)
 
     pivot = base.pivot_table(index="Year", columns="Attribute", values="Value", aggfunc="sum").reset_index()
-
     col1, col2 = st.columns(2)
-
     with col1:
         if "Ending Stocks" in pivot.columns and "Domestic Consumption" in pivot.columns:
             pivot["Estoque/Uso (%)"] = pivot["Ending Stocks"] / pivot["Domestic Consumption"] * 100
             fig_su = px.bar(pivot, x="Year", y="Estoque/Uso (%)", title="Estoque/Uso")
             fig_su.update_traces(marker_color="#F59E0B")
             st.plotly_chart(aplicar_layout(fig_su, 420), use_container_width=True)
-
     with col2:
         if {"Production", "Domestic Consumption"}.issubset(pivot.columns):
             pivot["Produção - Consumo"] = pivot["Production"] - pivot["Domestic Consumption"]
             fig_gap = px.bar(pivot, x="Year", y="Produção - Consumo", title="Superávit/Déficit: Produção - Consumo")
             fig_gap.update_traces(marker_color="#38BDF8")
             st.plotly_chart(aplicar_layout(fig_gap, 420), use_container_width=True)
-
     st.dataframe(pivot, use_container_width=True)
 
 with tabs[2]:
     st.subheader("Market Share Mundial")
-
     ano_ms = st.selectbox("Ano para análise de participação", sorted(df["Year"].dropna().unique(), reverse=True))
-
-    ms = df[
-        (df["Produto"] == produto) &
-        (df["Indicador"] == indicador) &
-        (df["Year"] == ano_ms) &
-        (df["País"] != "Mundo")
-    ].copy()
-
+    ms = df[(df["Produto"] == produto) & (df["Indicador"] == indicador) & (df["Year"] == ano_ms) & (df["País"] != "Mundo")].copy()
     ms = ms[ms["Value"] > 0].sort_values("Value", ascending=False)
     total = ms["Value"].sum()
     ms["Market Share (%)"] = ms["Value"] / total * 100 if total else 0
-
     c1, c2 = st.columns(2)
-
     with c1:
         fig_tree = px.treemap(ms.head(20), path=["País"], values="Value", color="Market Share (%)", title=f"Market Share — {indicador} | {produto} | {ano_ms}", color_continuous_scale="Greens")
         st.plotly_chart(aplicar_layout(fig_tree, 520), use_container_width=True)
-
     with c2:
         fig_ms = px.bar(ms.head(15), x="Market Share (%)", y="País", orientation="h", title="Top 15 — Participação Mundial")
         fig_ms.update_traces(marker_color="#22C55E")
         fig_ms.update_layout(yaxis={"categoryorder": "total ascending"})
         st.plotly_chart(aplicar_layout(fig_ms, 520), use_container_width=True)
-
     st.dataframe(ms[["País", "Value", "Market Share (%)"]].head(30), use_container_width=True)
 
 with tabs[3]:
     st.subheader("Ranking Mundial")
-
     ano_rank = st.selectbox("Ano do ranking", sorted(df["Year"].dropna().unique(), reverse=True), key="rank")
-
-    rank = df[
-        (df["Produto"] == produto) &
-        (df["Indicador"] == indicador) &
-        (df["Year"] == ano_rank) &
-        (df["País"] != "Mundo")
-    ].copy()
-
+    rank = df[(df["Produto"] == produto) & (df["Indicador"] == indicador) & (df["Year"] == ano_rank) & (df["País"] != "Mundo")].copy()
     rank = rank[rank["Value"] > 0].sort_values("Value", ascending=False)
-
     fig_rank = px.bar(rank.head(20), x="Value", y="País", orientation="h", title=f"Top 20 — {indicador} | {produto} | {ano_rank}")
     fig_rank.update_traces(marker_color="#10B981")
     fig_rank.update_layout(yaxis={"categoryorder": "total ascending"})
@@ -411,18 +345,14 @@ with tabs[3]:
 
 with tabs[4]:
     st.subheader("Diagnóstico Fundamentalista")
-
     pivot = base.pivot_table(index="Year", columns="Attribute", values="Value", aggfunc="sum").reset_index()
-
     c1, c2 = st.columns(2)
-
     with c1:
         if {"Exports", "Production"}.issubset(pivot.columns):
             pivot["Exportação/Produção (%)"] = pivot["Exports"] / pivot["Production"] * 100
             fig = px.line(pivot, x="Year", y="Exportação/Produção (%)", markers=True, title="Exportação / Produção")
             fig.update_traces(line=dict(width=4, color="#F97316"))
             st.plotly_chart(aplicar_layout(fig, 440), use_container_width=True)
-
     with c2:
         if {"Imports", "Domestic Consumption"}.issubset(pivot.columns):
             pivot["Importação/Consumo (%)"] = pivot["Imports"] / pivot["Domestic Consumption"] * 100
@@ -433,6 +363,7 @@ with tabs[4]:
 with tabs[5]:
     st.subheader("Base filtrada")
     st.dataframe(base[["Produto", "País", "Year", "Indicador", "Unit", "Value"]], use_container_width=True)
-
     csv = base.to_csv(index=False).encode("utf-8-sig")
     st.download_button("Baixar base filtrada", csv, file_name=f"agrobasis_{produto}_{pais}.csv", mime="text/csv")
+
+
