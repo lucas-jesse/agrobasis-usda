@@ -366,4 +366,3 @@ with tabs[5]:
     csv = base.to_csv(index=False).encode("utf-8-sig")
     st.download_button("Baixar base filtrada", csv, file_name=f"agrobasis_{produto}_{pais}.csv", mime="text/csv")
 
-
