@@ -5,8 +5,7 @@ import plotly.express as px
 
 st.set_page_config(page_title="AgroBasis PRO | Complexo Soja", layout="wide")
 
-PASTA = r"C:\Users\cotrirosa\Desktop\Lucas\Milho"
-ARQUIVO = os.path.join(PASTA, "psd_oilseeds.csv")
+ARQUIVO = "psd_oilseeds.csv"
 
 if not os.path.exists(ARQUIVO):
     st.error("Arquivo 'psd_oilseeds.csv' não encontrado.")
