@@ -1,0 +1,19 @@
+name: Mantenha os aplicativos Streamlit ativos
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping dashboards
+        run: |
+          wget --spider --user-agent="Mozilla/5.0" https://agrobasis-usda.streamlit.app/
+          wget --spider --user-agent="Mozilla/5.0" https://agrobasis-usda-milho.streamlit.app/
+          wget --spider --user-agent="Mozilla/5.0" https://usda-trigo.streamlit.app/
+          wget --spider --user-agent="Mozilla/5.0" https://spread-milho.streamlit.app/
+          
