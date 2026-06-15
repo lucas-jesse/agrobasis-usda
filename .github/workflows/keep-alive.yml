@@ -1,4 +1,4 @@
-name: Keep Streamlit Apps Alive
+name: Mantenha os aplicativos Streamlit ativos
 
 on:
   schedule:
@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Ping dashboards
         run: |
-          curl -L --max-time 60 https://agrobasis-usda.streamlit.app/
-          curl -L --max-time 60 https://agrobasis-usda-milho.streamlit.app/
-          curl -L --max-time 60 https://usda-trigo.streamlit.app/
-          curl -L --max-time 60 https://spread-milho.streamlit.app/
+          wget --spider --timeout=60 --tries=2 --user-agent="Mozilla/5.0" https://agrobasis-usda.streamlit.app/
+          wget --spider --timeout=60 --tries=2 --user-agent="Mozilla/5.0" https://agrobasis-usda-milho.streamlit.app/
+          wget --spider --timeout=60 --tries=2 --user-agent="Mozilla/5.0" https://spread-milho.streamlit.app/
+          wget --spider --timeout=60 --tries=2 --user-agent="Mozilla/5.0" https://usda-trigo.streamlit.app/
