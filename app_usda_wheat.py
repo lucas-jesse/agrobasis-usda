@@ -616,17 +616,16 @@ if not anos:
     st.warning("Não há dados disponíveis para essa combinação.")
     st.stop()
 
-# Abre o dashboard nos últimos 8 anos, mantendo opção de histórico completo.
+# Abre o dashboard nos últimos 8 anos, mas permite alterar livremente a faixa.
 periodo_padrao = (anos[-8], anos[-1]) if len(anos) >= 8 else (anos[0], anos[-1])
 
+# Inicialização
 if "periodo_trigo" not in st.session_state:
-    st.session_state["periodo_trigo"] = periodo_padrao
+    st.session_state.periodo_trigo = periodo_padrao
 
-# Se mudar produto/país e o período salvo ficar fora das opções (ou deixar de
-# ser uma tupla/lista de 2 elementos — o que acontece quando "anos" tem muito
-# poucos valores e o select_slider colapsa o range para um escalar), reseta
-# para o período padrão em vez de presumir cegamente que é indexável.
-_periodo_salvo = st.session_state["periodo_trigo"]
+# Se mudar produto/país e o período salvo ficar fora das opções disponíveis,
+# reseta para o padrão em vez de prender o slider.
+_periodo_salvo = st.session_state.periodo_trigo
 
 if (
     not isinstance(_periodo_salvo, (tuple, list))
@@ -634,20 +633,30 @@ if (
     or _periodo_salvo[0] not in anos
     or _periodo_salvo[1] not in anos
 ):
-    st.session_state["periodo_trigo"] = periodo_padrao
+    st.session_state.periodo_trigo = periodo_padrao
 
 with c4:
     p_col, b_col = st.columns([2.2, 1])
+
+    # Botão
     with b_col:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
         if st.button("Todo o Histórico", key="btn_historico_trigo", use_container_width=True):
-            st.session_state["periodo_trigo"] = (anos[0], anos[-1])
+            st.session_state.periodo_trigo = (anos[0], anos[-1])
+
+    # Slider sem key fixa: usa value vindo do session_state e depois atualiza manualmente.
+    # Isso evita o comportamento em que o slider fica preso no padrão ou no histórico completo.
     with p_col:
-        ano_ini, ano_fim = st.select_slider(
+        periodo = st.select_slider(
             "Período",
             options=anos,
-            key="periodo_trigo"
+            value=st.session_state.periodo_trigo
         )
+
+# Atualiza somente após o usuário mover
+st.session_state.periodo_trigo = periodo
+
+ano_ini, ano_fim = periodo
 
 base = base_inicial[
     (base_inicial["Year"] >= ano_ini) &
