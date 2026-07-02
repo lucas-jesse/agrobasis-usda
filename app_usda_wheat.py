@@ -714,8 +714,17 @@ with tabs[0]:
     st.subheader("Comparação internacional")
 
     # Padrão dinâmico: os 2 países de maior expressão no indicador/ano final
-    # do período selecionado, + Brasil (sempre presente como referência local),
-    # em vez de uma lista fixa de players que pode não refletir o ranking atual.
+    # do período selecionado, + Brasil (sempre presente como referência local).
+    #
+    # BUG CORRIGIDO: este multiselect não tinha key= explícita, e "padrao"
+    # (o default) era recalculado a cada rerun a partir de ano_fim. Sem key,
+    # o Streamlit gera um id interno cujo hash depende do próprio "default" —
+    # ao arrastar o slider de período, ano_fim muda, padrao muda, o id muda,
+    # e o Streamlit não consegue reconciliar o widget entre a rodada anterior
+    # e a atual (mesmo erro estrutural do select_slider sem key, só que aqui
+    # disparado pelo recurso "top 2 + Brasil"). Com key= fixa, o Streamlit só
+    # consulta default= na primeira montagem da sessão; depois disso, o valor
+    # vem de st.session_state, imune a mudanças de "padrao" em reruns seguintes.
     ranking_top = df[
         (df["Produto"] == produto) &
         (df["Indicador"] == indicador) &
@@ -729,7 +738,8 @@ with tabs[0]:
     paises_comp = st.multiselect(
         "Países/regiões para comparação",
         paises,
-        default=padrao
+        default=padrao,
+        key="paises_comp_trigo"
     )
 
     comp = df[
