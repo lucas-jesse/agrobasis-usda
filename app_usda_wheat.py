@@ -364,6 +364,21 @@ def valor(base, attr):
     return None if s.empty else s["Value"].iloc[-1]
 
 
+def anos_lista(serie, reverse=False):
+    """Retorna anos únicos como int nativo do Python, nunca numpy.int64.
+
+    Referência oficial: streamlit/streamlit#6815 — o motor de widgets do
+    Streamlit (validação de tipo + serialização de session_state entre
+    reruns) trata numpy.int64 como tipo incompatível com int em vários
+    pontos internos, causando ValueError/TypeError intermitentes que só
+    se manifestam ao interagir com o widget (ex.: arrastar um slider),
+    porque pandas.Series.unique() SEMPRE retorna numpy.int64, mesmo após
+    .astype(int) na Series original (astype converte o dtype da coluna,
+    não o tipo escalar devolvido por unique()/max()/min()).
+    """
+    return sorted((int(a) for a in serie.dropna().unique()), reverse=reverse)
+
+
 def variacao(base, attr):
     s = base[base["Attribute"] == attr].sort_values("Year")
     if len(s) < 2:
@@ -595,7 +610,7 @@ base_inicial = df[
     (df["País"] == pais)
 ].copy()
 
-anos = sorted(base_inicial["Year"].dropna().unique())
+anos = anos_lista(base_inicial["Year"])
 
 if not anos:
     st.warning("Não há dados disponíveis para essa combinação.")
@@ -825,7 +840,7 @@ with tabs[2]:
 
     ano_ms = st.selectbox(
         "Ano para análise de participação",
-        sorted(df["Year"].dropna().unique(), reverse=True)
+        anos_lista(df["Year"], reverse=True)
     )
 
     ms = df[
@@ -874,7 +889,7 @@ with tabs[3]:
 
     ano_rank = st.selectbox(
         "Ano do ranking",
-        sorted(df["Year"].dropna().unique(), reverse=True),
+        anos_lista(df["Year"], reverse=True),
         key="rank"
     )
 
