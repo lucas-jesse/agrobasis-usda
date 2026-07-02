@@ -630,32 +630,6 @@ cagr_ind = cagr(base, attr_indicador)
 # 1000 MT -> milhões de toneladas (MM/t) para leitura executiva/PPT.
 converter_mm = eh_volume_toneladas(attr_indicador)
 
-st.subheader(f"Painel Executivo — {produto} | {pais}")
-
-cards = [
-    ("Produção", producao / 1000 if producao else producao, "Production", "MM/t", "card-green"),
-    ("Consumo Doméstico", consumo / 1000 if consumo else consumo, "Domestic Consumption", "MM/t", "card-blue"),
-    ("Consumo Ração", feed / 1000 if feed else feed, "Feed Dom. Consumption", "MM/t", "card-orange"),
-    ("Exportações", exportacao / 1000 if exportacao else exportacao, "Exports", "MM/t", "card-green"),
-    ("Estoque Final", estoque / 1000 if estoque else estoque, "Ending Stocks", "MM/t", "card-dark"),
-    ("Estoque/Uso", estoque_uso, None, "%", "card-orange"),
-    ("Exportação/Produção", export_prod, None, "%", "card-blue"),
-    ("CAGR Indicador", cagr_ind, None, "% a.a.", "card-dark"),
-]
-
-cols = st.columns(4)
-
-for i, (titulo, v, attr, unid, classe) in enumerate(cards):
-    with cols[i % 4]:
-        delta = variacao(base, attr) if attr else "Período selecionado"
-        st.markdown(f"""
-        <div class="card {classe}">
-            <div class="card-title">{titulo}</div>
-            <div class="card-value">{fmt(v, 0 if unid == "MM/t" else 2)}</div>
-            <div class="card-delta">{unid} | {delta}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
 st.divider()
 
 tabs = st.tabs([
@@ -669,40 +643,52 @@ tabs = st.tabs([
 ])
 
 with tabs[0]:
-    col_a, col_b = st.columns([2, 1])
+    base_graf = base[base["Indicador"] == indicador].sort_values("Year").copy()
+    if converter_mm:
+        base_graf["Value"] = base_graf["Value"] / 1000
 
-    with col_a:
-        base_graf = base[base["Indicador"] == indicador].sort_values("Year").copy()
-        if converter_mm:
-            base_graf["Value"] = base_graf["Value"] / 1000
+    fig = px.line(
+        base_graf,
+        x="Year",
+        y="Value",
+        markers=True,
+        title=f"Evolução — {indicador} | {produto} | {pais}"
+    )
+    fig.update_traces(line=dict(width=5, color="#15a86b"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
+    aplicar_rotulos_linha(fig, casas=0 if converter_mm else 1, mostrar_rotulos=mostrar_rotulos_periodo)
+    fig.update_xaxes(title_text="Ano")
+    fig.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)" if converter_mm else "Valor")
+    st.plotly_chart(aplicar_layout(fig, 560), use_container_width=True, config=PLOTLY_CONFIG)
 
-        fig = px.line(
-            base_graf,
-            x="Year",
-            y="Value",
-            markers=True,
-            title=f"Evolução — {indicador} | {produto} | {pais}"
-        )
-        fig.update_traces(line=dict(width=5, color="#15a86b"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
-        aplicar_rotulos_linha(fig, casas=0 if converter_mm else 1, mostrar_rotulos=mostrar_rotulos_periodo)
-        fig.update_xaxes(title_text="Ano")
-        fig.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)" if converter_mm else "Valor")
-        st.plotly_chart(aplicar_layout(fig, 500), use_container_width=True, config=PLOTLY_CONFIG)
+    st.subheader(f"Painel Executivo — {produto} | {pais}")
 
-    with col_b:
-        st.markdown("""
-        <div class="insight-box">
-            <h3>Leitura rápida</h3>
-            <p>Este painel mostra a trajetória do indicador selecionado e sua relação com os principais fundamentos:
-            produção, consumo doméstico, consumo para ração, exportações, importações e estoques.</p>
-            <p>Para análise de preço, acompanhe principalmente estoque/uso, exportação/produção,
-            ritmo de consumo, participação dos EUA, Brasil, Argentina e Ucrânia nas exportações globais.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    cards = [
+        ("Produção", producao / 1000 if producao else producao, "Production", "MM/t", "card-green"),
+        ("Consumo Doméstico", consumo / 1000 if consumo else consumo, "Domestic Consumption", "MM/t", "card-blue"),
+        ("Consumo Ração", feed / 1000 if feed else feed, "Feed Dom. Consumption", "MM/t", "card-orange"),
+        ("Exportações", exportacao / 1000 if exportacao else exportacao, "Exports", "MM/t", "card-green"),
+        ("Estoque Final", estoque / 1000 if estoque else estoque, "Ending Stocks", "MM/t", "card-dark"),
+        ("Estoque/Uso", estoque_uso, None, "%", "card-orange"),
+        ("Exportação/Produção", export_prod, None, "%", "card-blue"),
+        ("CAGR Indicador", cagr_ind, None, "% a.a.", "card-dark"),
+    ]
+
+    cols = st.columns(4)
+
+    for i, (titulo, v, attr, unid, classe) in enumerate(cards):
+        with cols[i % 4]:
+            delta = variacao(base, attr) if attr else "Período selecionado"
+            st.markdown(f"""
+            <div class="card {classe}">
+                <div class="card-title">{titulo}</div>
+                <div class="card-value">{fmt(v, 0 if unid == "MM/t" else 2)}</div>
+                <div class="card-delta">{unid} | {delta}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.subheader("Comparação internacional")
 
-    padrao = [p for p in ["Mundo", "Estados Unidos", "China", "Brasil", "Argentina", "Ucrânia"] if p in paises]
+    padrao = [p for p in ["Estados Unidos", "Brasil", "China"] if p in paises]
 
     paises_comp = st.multiselect(
         "Países/regiões para comparação",
@@ -737,30 +723,25 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("Balanço de Oferta e Demanda")
 
-    attrs = [
-        "Beginning Stocks",
-        "Production",
-        "Imports",
-        "Total Supply",
-        "Feed Dom. Consumption",
-        "FSI Consumption",
-        "Domestic Consumption",
-        "Exports",
-        "Ending Stocks"
-    ]
+    # Gráfico de barras ano a ano: Produção (oferta) x Consumo Doméstico (demanda).
+    # Substituiu o gráfico de linha com 9 séries — em séries longas, os marcadores/
+    # rótulos se sobrepunham e o gráfico ficava ilegível, especialmente exportado
+    # como imagem estática para PPT.
+    attrs_oferta_demanda = ["Production", "Domestic Consumption"]
+    bal = base[base["Attribute"].isin(attrs_oferta_demanda)].copy()
+    bal["Value_MMt"] = bal["Value"] / 1000  # 1000 MT -> milhões de toneladas (MM/t)
 
-    bal = base[base["Attribute"].isin(attrs)].copy()
-    bal["Value"] = bal["Value"] / 1000  # 1000 MT -> milhões de toneladas (MM/t); todos os atributos do balanço são volume
-
-    fig_bal = px.line(
+    fig_bal = px.bar(
         bal,
         x="Year",
-        y="Value",
+        y="Value_MMt",
         color="Indicador",
-        markers=True,
-        title=f"Balanço USDA — {produto} | {pais}"
+        barmode="group",
+        title=f"Oferta x Demanda (ano a ano) — {produto} | {pais}",
+        color_discrete_map={"Produção": "#92400e", "Consumo Doméstico": "#0b3d63"}
     )
-    aplicar_rotulos_linha(fig_bal, casas=0, mostrar_rotulos=mostrar_rotulos_periodo)
+    aplicar_rotulos_barra(fig_bal, casas=0, mostrar_rotulos=mostrar_rotulos_periodo)
+    fig_bal.update_xaxes(title_text="Ano", type="category")
     fig_bal.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)")
     st.plotly_chart(aplicar_layout(fig_bal, 560), use_container_width=True, config=PLOTLY_CONFIG)
 
@@ -771,29 +752,27 @@ with tabs[1]:
         aggfunc="sum"
     ).reset_index()
 
-    col1, col2 = st.columns(2)
+    if "Ending Stocks" in pivot.columns and "Domestic Consumption" in pivot.columns:
+        pivot["Estoque/Uso (%)"] = pivot["Ending Stocks"] / pivot["Domestic Consumption"] * 100
+        fig_su = px.bar(pivot, x="Year", y="Estoque/Uso (%)", title="Estoque/Uso")
+        fig_su.update_traces(marker_color="#c2730f")
+        aplicar_rotulos_barra(fig_su, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
+        fig_su.update_xaxes(type="category")
+        st.plotly_chart(aplicar_layout(fig_su, 520), use_container_width=True, config=PLOTLY_CONFIG)
 
-    with col1:
-        if "Ending Stocks" in pivot.columns and "Domestic Consumption" in pivot.columns:
-            pivot["Estoque/Uso (%)"] = pivot["Ending Stocks"] / pivot["Domestic Consumption"] * 100
-            fig_su = px.bar(pivot, x="Year", y="Estoque/Uso (%)", title="Estoque/Uso")
-            fig_su.update_traces(marker_color="#c2730f")
-            aplicar_rotulos_barra(fig_su, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
-            st.plotly_chart(aplicar_layout(fig_su, 420), use_container_width=True, config=PLOTLY_CONFIG)
-
-    with col2:
-        if {"Production", "Domestic Consumption"}.issubset(pivot.columns):
-            pivot["Produção - Consumo (MM/t)"] = (pivot["Production"] - pivot["Domestic Consumption"]) / 1000
-            fig_gap = px.bar(
-                pivot,
-                x="Year",
-                y="Produção - Consumo (MM/t)",
-                title="Superávit/Déficit: Produção - Consumo"
-            )
-            fig_gap.update_traces(marker_color="#0891b2")
-            aplicar_rotulos_barra(fig_gap, casas=0, mostrar_rotulos=mostrar_rotulos_periodo)
-            fig_gap.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)")
-            st.plotly_chart(aplicar_layout(fig_gap, 420), use_container_width=True, config=PLOTLY_CONFIG)
+    if {"Production", "Domestic Consumption"}.issubset(pivot.columns):
+        pivot["Produção - Consumo (MM/t)"] = (pivot["Production"] - pivot["Domestic Consumption"]) / 1000
+        fig_gap = px.bar(
+            pivot,
+            x="Year",
+            y="Produção - Consumo (MM/t)",
+            title="Superávit/Déficit: Produção - Consumo"
+        )
+        fig_gap.update_traces(marker_color="#0891b2")
+        aplicar_rotulos_barra(fig_gap, casas=0, mostrar_rotulos=mostrar_rotulos_periodo)
+        fig_gap.update_xaxes(type="category")
+        fig_gap.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)")
+        st.plotly_chart(aplicar_layout(fig_gap, 520), use_container_width=True, config=PLOTLY_CONFIG)
 
     st.dataframe(pivot, use_container_width=True)
 
@@ -890,65 +869,57 @@ with tabs[4]:
         aggfunc="sum"
     ).reset_index()
 
-    c1, c2 = st.columns(2)
+    if {"Exports", "Production"}.issubset(pivot.columns):
+        pivot["Exportação/Produção (%)"] = pivot["Exports"] / pivot["Production"] * 100
+        fig = px.line(
+            pivot,
+            x="Year",
+            y="Exportação/Produção (%)",
+            markers=True,
+            title="Exportação / Produção"
+        )
+        fig.update_traces(line=dict(width=5, color="#c2730f"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
+        aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
+        st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
-    with c1:
-        if {"Exports", "Production"}.issubset(pivot.columns):
-            pivot["Exportação/Produção (%)"] = pivot["Exports"] / pivot["Production"] * 100
-            fig = px.line(
-                pivot,
-                x="Year",
-                y="Exportação/Produção (%)",
-                markers=True,
-                title="Exportação / Produção"
-            )
-            fig.update_traces(line=dict(width=5, color="#c2730f"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
-            aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
-            st.plotly_chart(aplicar_layout(fig, 440), use_container_width=True, config=PLOTLY_CONFIG)
+    if {"Imports", "Domestic Consumption"}.issubset(pivot.columns):
+        pivot["Importação/Consumo (%)"] = pivot["Imports"] / pivot["Domestic Consumption"] * 100
+        fig = px.line(
+            pivot,
+            x="Year",
+            y="Importação/Consumo (%)",
+            markers=True,
+            title="Importação / Consumo"
+        )
+        fig.update_traces(line=dict(width=5, color="#dc2626"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
+        aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
+        st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
-    with c2:
-        if {"Imports", "Domestic Consumption"}.issubset(pivot.columns):
-            pivot["Importação/Consumo (%)"] = pivot["Imports"] / pivot["Domestic Consumption"] * 100
-            fig = px.line(
-                pivot,
-                x="Year",
-                y="Importação/Consumo (%)",
-                markers=True,
-                title="Importação / Consumo"
-            )
-            fig.update_traces(line=dict(width=5, color="#dc2626"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
-            aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
-            st.plotly_chart(aplicar_layout(fig, 440), use_container_width=True, config=PLOTLY_CONFIG)
+    if {"Feed Dom. Consumption", "Domestic Consumption"}.issubset(pivot.columns):
+        pivot["Ração/Consumo (%)"] = pivot["Feed Dom. Consumption"] / pivot["Domestic Consumption"] * 100
+        fig = px.line(
+            pivot,
+            x="Year",
+            y="Ração/Consumo (%)",
+            markers=True,
+            title="Consumo para Ração / Consumo Total"
+        )
+        fig.update_traces(line=dict(width=5, color="#15a86b"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
+        aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
+        st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
-    c3, c4 = st.columns(2)
-
-    with c3:
-        if {"Feed Dom. Consumption", "Domestic Consumption"}.issubset(pivot.columns):
-            pivot["Ração/Consumo (%)"] = pivot["Feed Dom. Consumption"] / pivot["Domestic Consumption"] * 100
-            fig = px.line(
-                pivot,
-                x="Year",
-                y="Ração/Consumo (%)",
-                markers=True,
-                title="Consumo para Ração / Consumo Total"
-            )
-            fig.update_traces(line=dict(width=5, color="#15a86b"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
-            aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
-            st.plotly_chart(aplicar_layout(fig, 440), use_container_width=True, config=PLOTLY_CONFIG)
-
-    with c4:
-        if {"FSI Consumption", "Domestic Consumption"}.issubset(pivot.columns):
-            pivot["FSI/Consumo (%)"] = pivot["FSI Consumption"] / pivot["Domestic Consumption"] * 100
-            fig = px.line(
-                pivot,
-                x="Year",
-                y="FSI/Consumo (%)",
-                markers=True,
-                title="FSI / Consumo Total"
-            )
-            fig.update_traces(line=dict(width=5, color="#0891b2"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
-            aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
-            st.plotly_chart(aplicar_layout(fig, 440), use_container_width=True, config=PLOTLY_CONFIG)
+    if {"FSI Consumption", "Domestic Consumption"}.issubset(pivot.columns):
+        pivot["FSI/Consumo (%)"] = pivot["FSI Consumption"] / pivot["Domestic Consumption"] * 100
+        fig = px.line(
+            pivot,
+            x="Year",
+            y="FSI/Consumo (%)",
+            markers=True,
+            title="FSI / Consumo Total"
+        )
+        fig.update_traces(line=dict(width=5, color="#0891b2"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
+        aplicar_rotulos_linha(fig, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
+        st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
 with tabs[5]:
     st.subheader("Análises Complementares")
