@@ -622,10 +622,17 @@ periodo_padrao = (anos[-8], anos[-1]) if len(anos) >= 8 else (anos[0], anos[-1])
 if "periodo_trigo" not in st.session_state:
     st.session_state["periodo_trigo"] = periodo_padrao
 
-# Se mudar produto/país e o período salvo ficar fora das opções, reseta para últimos 8 anos.
+# Se mudar produto/país e o período salvo ficar fora das opções (ou deixar de
+# ser uma tupla/lista de 2 elementos — o que acontece quando "anos" tem muito
+# poucos valores e o select_slider colapsa o range para um escalar), reseta
+# para o período padrão em vez de presumir cegamente que é indexável.
+_periodo_salvo = st.session_state["periodo_trigo"]
+
 if (
-    st.session_state["periodo_trigo"][0] not in anos
-    or st.session_state["periodo_trigo"][1] not in anos
+    not isinstance(_periodo_salvo, (tuple, list))
+    or len(_periodo_salvo) != 2
+    or _periodo_salvo[0] not in anos
+    or _periodo_salvo[1] not in anos
 ):
     st.session_state["periodo_trigo"] = periodo_padrao
 
