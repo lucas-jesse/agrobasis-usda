@@ -40,6 +40,24 @@ TRAD_ATTR = {
     "TY Imports": "Importações no Ano Comercial",
 }
 
+# Atributos cuja unidade original do USDA PSD é "1000 MT" (mil toneladas).
+# Área Colhida (1000 HA) e Produtividade (MT/HA, uma razão) ficam de fora
+# de propósito: converter esses dois pra "milhões de toneladas" produziria
+# um número tecnicamente errado.
+ATRIBUTOS_VOLUME_TONELADAS = {
+    "Production", "Domestic Consumption", "Exports", "Imports",
+    "Ending Stocks", "Beginning Stocks", "Total Supply",
+    "Feed Dom. Consumption", "FSI Consumption",
+    "Food, Seed, Industrial Consumption",
+    "TY Exports", "TY Imports",
+}
+
+
+def eh_volume_toneladas(attribute: str) -> bool:
+    """True se o Attribute (nome original em inglês) for medido em 1000 MT."""
+    return attribute in ATRIBUTOS_VOLUME_TONELADAS
+
+
 TRAD_PAIS = {
     "World": "Mundo",
     "Mundo": "Mundo",
@@ -235,6 +253,16 @@ div[data-testid="stExpander"] {
     background:#ffffff;
     border-radius:14px;
     border:1px solid #e2e8f0;
+}
+
+.stButton > button {
+    background:#ffffff;
+    color:#92400e;
+    border:1px solid #cbd5e1;
+    border-radius:10px;
+    font-weight:700;
+    min-height:40px;
+    margin-top:25px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -518,7 +546,7 @@ produtos = sorted(df["Produto"].dropna().unique())
 paises = ["Mundo"] + sorted([p for p in df["País"].dropna().unique() if p != "Mundo"])
 indicadores = sorted(df["Indicador"].dropna().unique())
 
-c1, c2, c3, c4 = st.columns([1.2, 1.2, 1.2, 1.4])
+c1, c2, c3, c4, c5 = st.columns([1.15, 1.15, 1.15, 1.35, 0.9])
 
 with c1:
     produto = st.selectbox(
@@ -528,11 +556,7 @@ with c1:
     )
 
 with c2:
-    pais = st.selectbox(
-        "País / Região",
-        paises,
-        index=0
-    )
+    pais = st.selectbox("País / Região", paises, index=0)
 
 with c3:
     indicador = st.selectbox(
@@ -541,45 +565,40 @@ with c3:
         index=indicadores.index("Produção") if "Produção" in indicadores else 0
     )
 
-base_inicial = df[
-    (df["Produto"] == produto) &
-    (df["País"] == pais)
-].copy()
-
+base_inicial = df[(df["Produto"] == produto) & (df["País"] == pais)].copy()
 anos = sorted(base_inicial["Year"].dropna().unique())
 
 if not anos:
     st.warning("Não há dados disponíveis para essa combinação.")
     st.stop()
 
+# Botão "Todo o Histórico" guardado em session_state para persistir entre
+# reruns (troca de produto, país, indicador etc.), diferente de um botão
+# comum do Streamlit, que só retorna True no clique que disparou o rerun.
+if "usar_historico_completo_milho" not in st.session_state:
+    st.session_state["usar_historico_completo_milho"] = False
+
+with c5:
+    if st.button("Todo o Histórico", use_container_width=True,
+                  help="Exibe todo o histórico disponível. Em períodos acima de 8 anos, "
+                       "os valores nos gráficos são ocultados para evitar sobreposição."):
+        st.session_state["usar_historico_completo_milho"] = True
+
 # Período padrão: últimos 8 anos disponíveis.
 # Isso faz o dashboard abrir limpo, com rótulos visíveis e pronto para apresentações.
 if len(anos) >= 8:
-    periodo_padrao = (anos[-8], anos[-1])
+    periodo_8_anos = (anos[-8], anos[-1])
 else:
-    periodo_padrao = (anos[0], anos[-1])
+    periodo_8_anos = (anos[0], anos[-1])
+
+periodo_padrao = (anos[0], anos[-1]) if st.session_state["usar_historico_completo_milho"] else periodo_8_anos
 
 with c4:
-    col_periodo, col_hist = st.columns([3, 1])
-
-    with col_periodo:
-        ano_ini, ano_fim = st.select_slider(
-            "Período",
-            options=anos,
-            value=periodo_padrao,
-            key="periodo_slider"
-        )
-
-    with col_hist:
-        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        historico_completo = st.button(
-            "Todo o Histórico",
-            use_container_width=True,
-            help="Exibe todo o histórico disponível. Em períodos acima de 8 anos, os valores nos gráficos são ocultados para evitar sobreposição."
-        )
-
-if historico_completo:
-    ano_ini, ano_fim = anos[0], anos[-1]
+    ano_ini, ano_fim = st.select_slider(
+        "Período",
+        options=anos,
+        value=periodo_padrao
+    )
 
 base = base_inicial[
     (base_inicial["Year"] >= ano_ini) &
@@ -607,14 +626,18 @@ export_prod = (exportacao / producao * 100) if exportacao and producao else None
 import_cons = (importacao / consumo * 100) if importacao and consumo else None
 cagr_ind = cagr(base, attr_indicador)
 
+# Indicador principal em toneladas? Se sim, todo o dashboard converte
+# 1000 MT -> milhões de toneladas (MM/t) para leitura executiva/PPT.
+converter_mm = eh_volume_toneladas(attr_indicador)
+
 st.subheader(f"Painel Executivo — {produto} | {pais}")
 
 cards = [
-    ("Produção", producao, "Production", "1000 MT", "card-green"),
-    ("Consumo Doméstico", consumo, "Domestic Consumption", "1000 MT", "card-blue"),
-    ("Consumo Ração", feed, "Feed Dom. Consumption", "1000 MT", "card-orange"),
-    ("Exportações", exportacao, "Exports", "1000 MT", "card-green"),
-    ("Estoque Final", estoque, "Ending Stocks", "1000 MT", "card-dark"),
+    ("Produção", producao / 1000 if producao else producao, "Production", "MM/t", "card-green"),
+    ("Consumo Doméstico", consumo / 1000 if consumo else consumo, "Domestic Consumption", "MM/t", "card-blue"),
+    ("Consumo Ração", feed / 1000 if feed else feed, "Feed Dom. Consumption", "MM/t", "card-orange"),
+    ("Exportações", exportacao / 1000 if exportacao else exportacao, "Exports", "MM/t", "card-green"),
+    ("Estoque Final", estoque / 1000 if estoque else estoque, "Ending Stocks", "MM/t", "card-dark"),
     ("Estoque/Uso", estoque_uso, None, "%", "card-orange"),
     ("Exportação/Produção", export_prod, None, "%", "card-blue"),
     ("CAGR Indicador", cagr_ind, None, "% a.a.", "card-dark"),
@@ -628,7 +651,7 @@ for i, (titulo, v, attr, unid, classe) in enumerate(cards):
         st.markdown(f"""
         <div class="card {classe}">
             <div class="card-title">{titulo}</div>
-            <div class="card-value">{fmt(v, 2 if unid != "1000 MT" else 1)}</div>
+            <div class="card-value">{fmt(v, 0 if unid == "MM/t" else 2)}</div>
             <div class="card-delta">{unid} | {delta}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -649,7 +672,9 @@ with tabs[0]:
     col_a, col_b = st.columns([2, 1])
 
     with col_a:
-        base_graf = base[base["Indicador"] == indicador].sort_values("Year")
+        base_graf = base[base["Indicador"] == indicador].sort_values("Year").copy()
+        if converter_mm:
+            base_graf["Value"] = base_graf["Value"] / 1000
 
         fig = px.line(
             base_graf,
@@ -659,9 +684,9 @@ with tabs[0]:
             title=f"Evolução — {indicador} | {produto} | {pais}"
         )
         fig.update_traces(line=dict(width=5, color="#15a86b"), marker=dict(size=10, line=dict(width=1.5, color="#ffffff")))
-        aplicar_rotulos_linha(fig, casas=1, mostrar_rotulos=mostrar_rotulos_periodo)
+        aplicar_rotulos_linha(fig, casas=0 if converter_mm else 1, mostrar_rotulos=mostrar_rotulos_periodo)
         fig.update_xaxes(title_text="Ano")
-        fig.update_yaxes(title_text="Valor")
+        fig.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)" if converter_mm else "Valor")
         st.plotly_chart(aplicar_layout(fig, 500), use_container_width=True, config=PLOTLY_CONFIG)
 
     with col_b:
@@ -693,6 +718,9 @@ with tabs[0]:
         (df["Year"] <= ano_fim)
     ].copy()
 
+    if converter_mm:
+        comp["Value"] = comp["Value"] / 1000
+
     fig_comp = px.line(
         comp,
         x="Year",
@@ -701,9 +729,9 @@ with tabs[0]:
         markers=True,
         title=f"Comparativo Internacional — {indicador} | {produto}"
     )
-    aplicar_rotulos_linha(fig_comp, casas=1, mostrar_rotulos=mostrar_rotulos_periodo)
+    aplicar_rotulos_linha(fig_comp, casas=0 if converter_mm else 1, mostrar_rotulos=mostrar_rotulos_periodo)
     fig_comp.update_xaxes(title_text="Ano")
-    fig_comp.update_yaxes(title_text="Valor")
+    fig_comp.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)" if converter_mm else "Valor")
     st.plotly_chart(aplicar_layout(fig_comp, 520), use_container_width=True, config=PLOTLY_CONFIG)
 
 with tabs[1]:
@@ -722,6 +750,7 @@ with tabs[1]:
     ]
 
     bal = base[base["Attribute"].isin(attrs)].copy()
+    bal["Value"] = bal["Value"] / 1000  # 1000 MT -> milhões de toneladas (MM/t); todos os atributos do balanço são volume
 
     fig_bal = px.line(
         bal,
@@ -731,7 +760,8 @@ with tabs[1]:
         markers=True,
         title=f"Balanço USDA — {produto} | {pais}"
     )
-    aplicar_rotulos_linha(fig_bal, casas=1, mostrar_rotulos=mostrar_rotulos_periodo)
+    aplicar_rotulos_linha(fig_bal, casas=0, mostrar_rotulos=mostrar_rotulos_periodo)
+    fig_bal.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)")
     st.plotly_chart(aplicar_layout(fig_bal, 560), use_container_width=True, config=PLOTLY_CONFIG)
 
     pivot = base.pivot_table(
@@ -753,15 +783,16 @@ with tabs[1]:
 
     with col2:
         if {"Production", "Domestic Consumption"}.issubset(pivot.columns):
-            pivot["Produção - Consumo"] = pivot["Production"] - pivot["Domestic Consumption"]
+            pivot["Produção - Consumo (MM/t)"] = (pivot["Production"] - pivot["Domestic Consumption"]) / 1000
             fig_gap = px.bar(
                 pivot,
                 x="Year",
-                y="Produção - Consumo",
+                y="Produção - Consumo (MM/t)",
                 title="Superávit/Déficit: Produção - Consumo"
             )
             fig_gap.update_traces(marker_color="#0891b2")
-            aplicar_rotulos_barra(fig_gap, casas=1, mostrar_rotulos=mostrar_rotulos_periodo)
+            aplicar_rotulos_barra(fig_gap, casas=0, mostrar_rotulos=mostrar_rotulos_periodo)
+            fig_gap.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)")
             st.plotly_chart(aplicar_layout(fig_gap, 420), use_container_width=True, config=PLOTLY_CONFIG)
 
     st.dataframe(pivot, use_container_width=True)
@@ -784,19 +815,23 @@ with tabs[2]:
     ms = ms[ms["Value"] > 0].sort_values("Value", ascending=False)
     total = ms["Value"].sum()
     ms["Market Share (%)"] = ms["Value"] / total * 100 if total else 0
+    ms["Value_display"] = ms["Value"] / 1000 if converter_mm else ms["Value"]
 
     c1, c2 = st.columns(2)
 
     with c1:
-        fig_tree = px.treemap(
-            ms.head(20),
-            path=["País"],
-            values="Value",
-            color="Market Share (%)",
-            title=f"Market Share — {indicador} | {produto} | {ano_ms}",
-            color_continuous_scale="Greens"
+        fig_ms_top = px.bar(
+            ms.head(15),
+            x="Value_display",
+            y="País",
+            orientation="h",
+            title=f"Top 15 — Volume | {indicador} | {produto} | {ano_ms}"
         )
-        st.plotly_chart(aplicar_layout(fig_tree, 520), use_container_width=True, config=PLOTLY_CONFIG)
+        fig_ms_top.update_traces(marker_color="#c2730f")
+        aplicar_rotulos_barra(fig_ms_top, casas=0 if converter_mm else 1, orientacao="h")
+        fig_ms_top.update_layout(yaxis={"categoryorder": "total ascending"})
+        fig_ms_top.update_xaxes(title_text="Milhões de toneladas (MM/t)" if converter_mm else "Valor")
+        st.plotly_chart(aplicar_layout(fig_ms_top, 520), use_container_width=True, config=PLOTLY_CONFIG)
 
     with c2:
         fig_ms = px.bar(
@@ -830,17 +865,19 @@ with tabs[3]:
     ].copy()
 
     rank = rank[rank["Value"] > 0].sort_values("Value", ascending=False)
+    rank["Value_display"] = rank["Value"] / 1000 if converter_mm else rank["Value"]
 
     fig_rank = px.bar(
         rank.head(20),
-        x="Value",
+        x="Value_display",
         y="País",
         orientation="h",
         title=f"Top 20 — {indicador} | {produto} | {ano_rank}"
     )
     fig_rank.update_traces(marker_color="#15a86b")
-    aplicar_rotulos_barra(fig_rank, casas=1, orientacao="h")
+    aplicar_rotulos_barra(fig_rank, casas=0 if converter_mm else 1, orientacao="h")
     fig_rank.update_layout(yaxis={"categoryorder": "total ascending"})
+    fig_rank.update_xaxes(title_text="Milhões de toneladas (MM/t)" if converter_mm else "Valor")
     st.plotly_chart(aplicar_layout(fig_rank, 560), use_container_width=True, config=PLOTLY_CONFIG)
 
 with tabs[4]:
@@ -1011,14 +1048,19 @@ with tabs[5]:
 
         heat_pivot = heat.pivot_table(index="País", columns="Year", values="Value", aggfunc="sum")
         heat_pivot = heat_pivot.reindex(top_paises)
+        if converter_mm:
+            heat_pivot = heat_pivot / 1000
 
         if not heat_pivot.empty:
+            titulo_heat = f"Mapa de Calor — Top 10 Países | {indicador}"
+            if converter_mm:
+                titulo_heat += " (MM/t)"
             fig_heat = px.imshow(
                 heat_pivot,
                 aspect="auto",
-                text_auto=".0f",
+                text_auto=".0f" if mostrar_rotulos_periodo else False,
                 color_continuous_scale="YlOrBr",
-                title=f"Mapa de Calor — Top 10 Países | {indicador}"
+                title=titulo_heat
             )
             fig_heat.update_xaxes(title_text="Ano")
             fig_heat.update_yaxes(title_text="")
