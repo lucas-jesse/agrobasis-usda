@@ -446,10 +446,21 @@ def aplicar_layout(fig, h=500):
         uniformtext_mode="hide",
     )
 
-    fig.update_traces(
-        hovertemplate=None,
-        marker_line_width=0,
-    )
+    # hovertemplate=None é válido para todos os tipos de trace (scatter, bar,
+    # heatmap etc.) e pode ser aplicado globalmente com segurança.
+    fig.update_traces(hovertemplate=None)
+
+    # marker_line_width=0 NÃO existe no schema de traces do tipo Heatmap
+    # (usado pelo px.imshow no mapa de calor da aba Análises) — só existe em
+    # traces com "marker" (bar, scatter, box, violin...). Aplicar globalmente
+    # via update_traces() derruba o app inteiro com ValueError assim que uma
+    # figura mista (ex.: heatmap) passa por aqui. Aplicamos trace a trace e
+    # ignoramos silenciosamente os tipos que não suportam a propriedade.
+    for _trace in fig.data:
+        try:
+            _trace.marker.line.width = 0
+        except (AttributeError, ValueError):
+            pass
 
     # Watermark central discreta, aparece também no PNG baixado pelo usuário.
     fig.add_annotation(
