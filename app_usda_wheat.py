@@ -88,202 +88,231 @@ TRAD_PAIS = {
 }
 
 # ============================================================
+# CORES OFICIAIS AGROBASIS
+# ============================================================
+# Constantes centralizadas — mesmo Design System dos dashboards USDA
+# Complexo Soja e USDA Milho.
+VERDE_PRINCIPAL = "#1E4812"
+VERDE_SECUNDARIO = "#54931B"
+TEXTO = "#222222"
+DOURADO = "#A17149"
+PRETO = "#000000"
+FUNDO = "#F8FAF8"
+BORDA = "#E7ECE8"
+OLIVA = "#6B7F3A"          # verde-oliva da paleta estendida — acento terciário
+MARROM_ESCURO = "#8A6A4F"  # marrom escuro da paleta estendida — escalas divergentes
+
+# ============================================================
 # ESTILO
 # ============================================================
 
-st.markdown("""
+st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap');
 
-html, body, [class*="css"] {
-    font-family:'Inter', sans-serif;
-}
+html, body, [class*="css"] {{
+    font-family:'Geist', Arial, sans-serif;
+}}
 
-.stApp {
-    background:#f4f6f9;
-    color:#1e293b;
-}
+.stApp {{
+    background:{FUNDO};
+    color:{TEXTO};
+}}
 
-.block-container {
+.block-container {{
     padding-top:1.5rem;
     padding-bottom:2rem;
     max-width:1400px;
-}
+}}
 
 h1, h2, h3, h4, h5, h6,
 [data-testid="stMarkdownContainer"],
 [data-testid="stMarkdownContainer"] p,
-label {
-    color:#0f172a !important;
-}
+label {{
+    color:{TEXTO} !important;
+    font-family:'Geist', Arial, sans-serif;
+}}
 
-h1 {
+h1 {{
     font-weight:800 !important;
     letter-spacing:-.02em;
-}
+}}
 
-.stCaptionContainer, .stCaptionContainer p {
-    color:#64748b !important;
-}
+.stCaptionContainer, .stCaptionContainer p {{
+    color:#6b6b6b !important;
+    font-family:'Sora', Arial, sans-serif;
+}}
 
 .stSelectbox label,
 .stSlider label,
-.stMultiSelect label {
-    color:#334155 !important;
+.stMultiSelect label {{
+    color:{TEXTO} !important;
+    font-family:'Sora', Arial, sans-serif;
     font-weight:600;
-    font-size:13px;
+    font-size:12.5px;
     text-transform:uppercase;
-    letter-spacing:.03em;
-}
+    letter-spacing:.05em;
+}}
 
 /* Caixas de seleção */
-[data-baseweb="select"] {
+[data-baseweb="select"] {{
     background:#ffffff !important;
     border-radius:10px;
-    border:1px solid #e2e8f0 !important;
-}
+    border:1px solid {BORDA} !important;
+}}
 
 [data-baseweb="select"] div,
-[data-baseweb="select"] span {
-    color:#0f172a !important;
-}
+[data-baseweb="select"] span {{
+    color:{TEXTO} !important;
+}}
 
 /* Dropdown aberto */
 [role="listbox"] div,
 [role="option"],
 [role="option"] div,
-[role="option"] span {
-    color:#0f172a !important;
+[role="option"] span {{
+    color:{TEXTO} !important;
     background:#ffffff !important;
-}
+}}
 
 /* Abas */
-.stTabs [data-baseweb="tab-list"] {
+.stTabs [data-baseweb="tab-list"] {{
     gap:4px;
     background:#ffffff;
     padding:6px;
     border-radius:14px;
-    border:1px solid #e2e8f0;
-}
+    border:1px solid {BORDA};
+}}
 
-.stTabs [data-baseweb="tab"] {
-    color:#475569;
+.stTabs [data-baseweb="tab"] {{
+    color:#6b6b6b;
+    font-family:'Geist', Arial, sans-serif;
     font-weight:600;
     border-radius:10px;
     padding:8px 16px;
-}
+    transition:background .15s ease, color .15s ease;
+}}
 
-.stTabs [aria-selected="true"] {
-    background:#0f3d63 !important;
+.stTabs [data-baseweb="tab"]:hover {{
+    background:rgba(84,147,27,0.10);
+    color:{VERDE_PRINCIPAL};
+}}
+
+.stTabs [aria-selected="true"] {{
+    background:{VERDE_PRINCIPAL} !important;
     color:#ffffff !important;
-}
+}}
 
-/* Cards executivos — versão discreta/profissional */
-.card {
-    position:relative;
-    overflow:hidden;
-    padding:18px 18px 16px 18px;
+.stTabs [aria-selected="true"]:hover {{
+    background:{VERDE_SECUNDARIO} !important;
+    color:#ffffff !important;
+}}
+
+/* Cards executivos — discretos, fundo claro com leve destaque colorido */
+.card {{
+    padding:16px 18px;
     border-radius:16px;
-    color:#0f172a;
     background:#ffffff;
-    box-shadow:0px 4px 14px rgba(15,23,42,0.045);
-    min-height:112px;
-    border:1px solid #e5eaf1;
-}
+    border:1px solid {BORDA};
+    border-left:4px solid var(--accent, {VERDE_PRINCIPAL});
+    box-shadow:0px 2px 8px rgba(30,72,18,0.05);
+    min-height:104px;
+}}
 
-.card::before {
-    content:"";
-    position:absolute;
-    left:0;
-    top:0;
-    width:4px;
-    height:100%;
-    background:#0f3d63;
-}
+.card-green  {{ --accent:{VERDE_PRINCIPAL}; }}
+.card-blue   {{ --accent:{OLIVA}; }}
+.card-orange {{ --accent:{DOURADO}; }}
+.card-dark   {{ --accent:{PRETO}; }}
 
-.card-green::before  { background:#1e6a3c; }
-.card-blue::before   { background:#0f3d63; }
-.card-orange::before { background:#d97706; }
-.card-dark::before   { background:#64748b; }
-
-.card-title {
-    color:#64748b !important;
-    font-size:11.5px;
+.card-title {{
+    color:#7a7a7a !important;
+    font-family:'Sora', Arial, sans-serif;
+    font-size:11px;
     text-transform:uppercase;
-    letter-spacing:.08em;
+    letter-spacing:.06em;
     font-weight:700;
-}
+}}
 
-.card-value {
-    color:#0f172a !important;
-    font-size:25px;
+.card-value {{
+    color:{TEXTO} !important;
+    font-family:'Geist', Arial, sans-serif;
+    font-size:23px;
     font-weight:800;
-    margin-top:8px;
-    letter-spacing:-.02em;
-}
+    margin-top:6px;
+}}
 
-.card-delta {
-    color:#64748b !important;
+.card-delta {{
+    color:#9a9a9a !important;
+    font-family:'Sora', Arial, sans-serif;
     font-size:11.5px;
-    margin-top:8px;
-    line-height:1.35;
-}
+    margin-top:5px;
+}}
 
-.insight-box {
+.insight-box {{
     background:#ffffff;
-    border:1px solid #e2e8f0;
+    border:1px solid {BORDA};
+    border-left:3px solid {DOURADO};
     padding:22px;
-    border-radius:18px;
-    color:#1e293b;
-    box-shadow:0px 6px 18px rgba(15,23,42,0.06);
-}
+    border-radius:16px;
+    color:{TEXTO};
+    box-shadow:0px 6px 18px rgba(30,72,18,0.05);
+}}
 
-.insight-box h3 {
-    color:#0f3d63 !important;
+.insight-box h3 {{
+    color:{VERDE_PRINCIPAL} !important;
     font-weight:800;
-}
+}}
 
-.insight-box p {
-    color:#334155 !important;
+.insight-box p {{
+    color:#4a4a4a !important;
     line-height:1.7;
-}
+}}
 
 /* Cartões de gráfico */
-div[data-testid="stPlotlyChart"] {
+div[data-testid="stPlotlyChart"] {{
     background:#ffffff;
     border-radius:18px;
     padding:8px;
-    border:1px solid #e2e8f0;
-    box-shadow:0px 6px 18px rgba(15,23,42,0.05);
-}
+    border:1px solid {BORDA};
+    box-shadow:0px 6px 18px rgba(30,72,18,0.04);
+}}
 
-div[data-testid="stDataFrame"] {
-    color:#0f172a !important;
+div[data-testid="stDataFrame"] {{
+    color:{TEXTO} !important;
     background:#ffffff;
     border-radius:14px;
-}
+}}
 
-div[data-testid="stExpander"] {
+div[data-testid="stExpander"] {{
     background:#ffffff;
     border-radius:14px;
-    border:1px solid #e2e8f0;
-}
+    border:1px solid {BORDA};
+}}
 
-.stButton > button {
+.stButton > button,
+.stDownloadButton > button {{
     background:#ffffff;
-    color:#0f3d63;
-    border:1px solid #cbd5e1;
+    color:{VERDE_PRINCIPAL};
+    font-family:'Geist', Arial, sans-serif;
+    border:1px solid {VERDE_PRINCIPAL};
     border-radius:10px;
     font-weight:700;
     min-height:40px;
     margin-top:25px;
-}
+    transition:background .15s ease, color .15s ease;
+}}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover {{
+    background:{VERDE_SECUNDARIO};
+    color:#ffffff;
+    border-color:{VERDE_SECUNDARIO};
+}}
 </style>
 """, unsafe_allow_html=True)
 
-# Paleta corporativa usada em todos os gráficos (ótima para apresentações)
-PALETA = ["#0b3d63", "#15a86b", "#e08a1f", "#9333ea", "#0891b2",
-          "#dc2626", "#475569", "#ca8a04", "#16a34a", "#2563eb"]
+# Paleta oficial AgroBasis — mesma usada em todos os dashboards do ecossistema
+PALETA = [VERDE_PRINCIPAL, VERDE_SECUNDARIO, DOURADO, TEXTO, PRETO, OLIVA, MARROM_ESCURO]
 
 # ============================================================
 # FUNÇÕES
@@ -417,33 +446,33 @@ def aplicar_layout(fig, h=500):
         template="plotly_white",
         paper_bgcolor="#ffffff",
         plot_bgcolor="#ffffff",
-        font=dict(color="#1e293b", size=13, family="Inter, Arial, sans-serif"),
-        title_font=dict(color="#0f172a", size=20, family="Inter, Arial, sans-serif"),
+        font=dict(color=TEXTO, size=13, family="Geist, Arial, sans-serif"),
+        title_font=dict(color=TEXTO, size=20, family="Geist, Arial, sans-serif"),
         title=dict(x=0.015, xanchor="left", y=0.96),
         xaxis=dict(
-            title_font=dict(size=12, color="#475569"),
-            tickfont=dict(size=11, color="#475569"),
-            gridcolor="#f1f5f9",
-            linecolor="#cbd5e1",
+            title_font=dict(size=12, color="#6b6b6b"),
+            tickfont=dict(size=11, color="#6b6b6b"),
+            gridcolor="rgba(34,34,34,0.06)",
+            linecolor=BORDA,
             showline=True,
             mirror=False,
             zeroline=False,
             ticks="outside",
-            tickcolor="#cbd5e1",
+            tickcolor=BORDA,
         ),
         yaxis=dict(
-            title_font=dict(size=12, color="#475569"),
-            tickfont=dict(size=11, color="#475569"),
-            gridcolor="#eef2f7",
-            linecolor="#cbd5e1",
+            title_font=dict(size=12, color="#6b6b6b"),
+            tickfont=dict(size=11, color="#6b6b6b"),
+            gridcolor="rgba(34,34,34,0.06)",
+            linecolor=BORDA,
             showline=True,
             mirror=False,
             zeroline=False,
             ticks="outside",
-            tickcolor="#cbd5e1",
+            tickcolor=BORDA,
         ),
         legend=dict(
-            font=dict(size=11, color="#334155"),
+            font=dict(size=11, color=TEXTO),
             bgcolor="rgba(255,255,255,0)",
             orientation="h",
             yanchor="bottom",
@@ -456,7 +485,7 @@ def aplicar_layout(fig, h=500):
         colorway=PALETA,
         margin=dict(l=64, r=34, t=82, b=58),
         height=h,
-        hoverlabel=dict(bgcolor="#0f172a", font_color="#ffffff", font_size=12),
+        hoverlabel=dict(bgcolor=VERDE_PRINCIPAL, font_color="#ffffff", font_size=12),
         uniformtext_minsize=9,
         uniformtext_mode="hide",
     )
@@ -483,7 +512,7 @@ def aplicar_layout(fig, h=500):
         xref="paper", yref="paper",
         x=0.5, y=0.52,
         showarrow=False,
-        font=dict(size=54, color="rgba(15, 61, 99, 0.075)", family="Inter, Arial, sans-serif"),
+        font=dict(size=54, color="rgba(30, 72, 18, 0.075)", family="Geist, Arial, sans-serif"),
         xanchor="center",
         yanchor="middle",
         textangle=0
@@ -491,11 +520,11 @@ def aplicar_layout(fig, h=500):
 
     # Assinatura técnica no rodapé.
     fig.add_annotation(
-        text="Fonte: USDA PSD • Elaboração: AgroBasis",
+        text="Fonte: USDA PSD · Elaboração: AgroBasis",
         xref="paper", yref="paper",
         x=1, y=-0.16,
         showarrow=False,
-        font=dict(size=10, color="#94a3b8"),
+        font=dict(size=10, color="#8a8a8a"),
         xanchor="right"
     )
     return fig
@@ -523,7 +552,7 @@ def aplicar_linha_profissional(fig, cor=None, mostrar_rotulos=True, casas=1, per
             tr.text = [fmt_plotly(v, casas, sufixo) for v in tr.y]
             tr.texttemplate = "%{text}"
             tr.textposition = "top center"
-            tr.textfont = dict(size=10.5, color="#334155")
+            tr.textfont = dict(size=10.5, color=TEXTO)
         else:
             tr.mode = "lines+markers"
             tr.text = None
@@ -547,7 +576,7 @@ def aplicar_barras_profissionais(fig, cor=None, texto=False, orientacao="v", mos
             tr.text = [fmt_plotly(v, casas, sufixo) for v in valores]
             tr.texttemplate = "%{text}"
             tr.textposition = "outside"
-            tr.textfont = dict(size=11.5, color="#334155")
+            tr.textfont = dict(size=11.5, color=TEXTO)
             tr.cliponaxis = False
         else:
             tr.text = None
@@ -575,8 +604,8 @@ PLOTLY_CONFIG = {
 
 df = carregar_dados()
 
-st.title("🌾 USDA Trigo")
-st.caption("USDA PSD | Trigo | Produção, consumo, exportações, importações, estoques, estoque/uso, market share e ranking mundial")
+st.title("Trigo USDA")
+st.caption("Fundamentos globais do trigo: produção, consumo, exportações, estoques e relações de mercado com dados oficiais do USDA PSD.")
 
 produtos = sorted(df["Produto"].dropna().unique())
 paises = ["Mundo"] + sorted([p for p in df["País"].dropna().unique() if p != "Mundo"])
@@ -690,13 +719,13 @@ converter_mm = eh_volume_toneladas(attr_indicador)
 st.divider()
 
 tabs = st.tabs([
-    "📈 Visão Executiva",
-    "⚖️ Balanço",
-    "🌍 Market Share",
-    "🏆 Rankings",
-    "📊 Diagnóstico",
-    "🔎 Análises",
-    "📋 Dados"
+    "Visão Executiva",
+    "Balanço",
+    "Market Share",
+    "Rankings",
+    "Diagnóstico",
+    "Análises",
+    "Dados"
 ])
 
 with tabs[0]:
@@ -711,7 +740,7 @@ with tabs[0]:
         markers=True,
         title=f"Evolução — {indicador} | {produto} | {pais}"
     )
-    aplicar_linha_profissional(fig, "#1e6a3c", casas=0 if converter_mm else 1, mostrar_rotulos=mostrar_rotulos_periodo)
+    aplicar_linha_profissional(fig, VERDE_SECUNDARIO, casas=0 if converter_mm else 1, mostrar_rotulos=mostrar_rotulos_periodo)
     fig.update_xaxes(title_text="Ano")
     fig.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)" if converter_mm else "Valor")
     st.plotly_chart(aplicar_layout(fig, 560), use_container_width=True, config=PLOTLY_CONFIG)
@@ -815,7 +844,7 @@ with tabs[1]:
         color="Indicador",
         barmode="group",
         title=f"Oferta x Demanda (ano a ano) — {produto} | {pais}",
-        color_discrete_map={"Produção": "#1e6a3c", "Consumo Doméstico": "#0f3d63"}
+        color_discrete_map={"Produção": VERDE_PRINCIPAL, "Consumo Doméstico": DOURADO}
     )
     aplicar_barras_profissionais(fig_bal, texto=True, mostrar_rotulos=mostrar_rotulos_periodo, casas=0)
     fig_bal.update_xaxes(title_text="Ano", type="category")
@@ -832,7 +861,7 @@ with tabs[1]:
     if "Ending Stocks" in pivot.columns and "Domestic Consumption" in pivot.columns:
         pivot["Estoque/Uso (%)"] = pivot["Ending Stocks"] / pivot["Domestic Consumption"] * 100
         fig_su = px.bar(pivot, x="Year", y="Estoque/Uso (%)", title="Estoque/Uso")
-        aplicar_barras_profissionais(fig_su, "#d97706", texto=True, mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
+        aplicar_barras_profissionais(fig_su, DOURADO, texto=True, mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
         fig_su.update_xaxes(type="category")
         st.plotly_chart(aplicar_layout(fig_su, 520), use_container_width=True, config=PLOTLY_CONFIG)
 
@@ -844,7 +873,7 @@ with tabs[1]:
             y="Produção - Consumo (MM/t)",
             title="Superávit/Déficit: Produção - Consumo"
         )
-        aplicar_barras_profissionais(fig_gap, "#0e7490", texto=True, mostrar_rotulos=mostrar_rotulos_periodo, casas=0)
+        aplicar_barras_profissionais(fig_gap, OLIVA, texto=True, mostrar_rotulos=mostrar_rotulos_periodo, casas=0)
         fig_gap.update_xaxes(type="category")
         fig_gap.update_yaxes(title_text="Valor (milhões de toneladas | MM/t)")
         st.plotly_chart(aplicar_layout(fig_gap, 520), use_container_width=True, config=PLOTLY_CONFIG)
@@ -881,7 +910,7 @@ with tabs[2]:
             orientation="h",
             title=f"Top 15 — Volume | {indicador} | {produto} | {ano_ms}"
         )
-        aplicar_barras_profissionais(fig_ms_top, "#0f3d63", texto=True, orientacao="h", casas=0 if converter_mm else 1)
+        aplicar_barras_profissionais(fig_ms_top, VERDE_PRINCIPAL, texto=True, orientacao="h", casas=0 if converter_mm else 1)
         fig_ms_top.update_layout(yaxis={"categoryorder": "total ascending"})
         fig_ms_top.update_xaxes(title_text="Milhões de toneladas (MM/t)" if converter_mm else "Valor")
         st.plotly_chart(aplicar_layout(fig_ms_top, 520), use_container_width=True, config=PLOTLY_CONFIG)
@@ -894,7 +923,7 @@ with tabs[2]:
             orientation="h",
             title="Top 15 — Participação Mundial"
         )
-        aplicar_barras_profissionais(fig_ms, "#1e6a3c", texto=True, orientacao="h", percentual=True)
+        aplicar_barras_profissionais(fig_ms, VERDE_SECUNDARIO, texto=True, orientacao="h", percentual=True)
         fig_ms.update_layout(yaxis={"categoryorder": "total ascending"})
         st.plotly_chart(aplicar_layout(fig_ms, 520), use_container_width=True, config=PLOTLY_CONFIG)
 
@@ -926,7 +955,7 @@ with tabs[3]:
         orientation="h",
         title=f"Top 20 — {indicador} | {produto} | {ano_rank}"
     )
-    aplicar_barras_profissionais(fig_rank, "#1e6a3c", texto=True, orientacao="h", casas=0 if converter_mm else 1)
+    aplicar_barras_profissionais(fig_rank, VERDE_SECUNDARIO, texto=True, orientacao="h", casas=0 if converter_mm else 1)
     fig_rank.update_layout(yaxis={"categoryorder": "total ascending"})
     fig_rank.update_xaxes(title_text="Milhões de toneladas (MM/t)" if converter_mm else "Valor")
     st.plotly_chart(aplicar_layout(fig_rank, 560), use_container_width=True, config=PLOTLY_CONFIG)
@@ -950,7 +979,7 @@ with tabs[4]:
             markers=True,
             title="Exportação / Produção"
         )
-        aplicar_linha_profissional(fig, "#d97706", mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
+        aplicar_linha_profissional(fig, DOURADO, mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
         st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
     if {"Imports", "Domestic Consumption"}.issubset(pivot.columns):
@@ -962,7 +991,7 @@ with tabs[4]:
             markers=True,
             title="Importação / Consumo"
         )
-        aplicar_linha_profissional(fig, "#b91c1c", mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
+        aplicar_linha_profissional(fig, MARROM_ESCURO, mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
         st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
     if {"Feed Dom. Consumption", "Domestic Consumption"}.issubset(pivot.columns):
@@ -974,7 +1003,7 @@ with tabs[4]:
             markers=True,
             title="Consumo para Ração / Consumo Total"
         )
-        aplicar_linha_profissional(fig, "#1e6a3c", mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
+        aplicar_linha_profissional(fig, VERDE_SECUNDARIO, mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
         st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
     if {"FSI Consumption", "Domestic Consumption"}.issubset(pivot.columns):
@@ -986,7 +1015,7 @@ with tabs[4]:
             markers=True,
             title="FSI / Consumo Total"
         )
-        aplicar_linha_profissional(fig, "#0e7490", mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
+        aplicar_linha_profissional(fig, OLIVA, mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
         st.plotly_chart(aplicar_layout(fig, 540), use_container_width=True, config=PLOTLY_CONFIG)
 
 with tabs[5]:
@@ -1010,7 +1039,7 @@ with tabs[5]:
         y="Variação YoY (%)",
         title=f"Variação Ano a Ano — {indicador} | {produto} | {pais}",
         color="Variação YoY (%)",
-        color_continuous_scale=["#b91c1c", "#f1f5f9", "#1e6a3c"],
+        color_continuous_scale=[MARROM_ESCURO, "#f1f5f9", VERDE_SECUNDARIO],
         color_continuous_midpoint=0
     )
     aplicar_barras_profissionais(fig_yoy, texto=True, mostrar_rotulos=mostrar_rotulos_periodo, percentual=True)
@@ -1056,7 +1085,7 @@ with tabs[5]:
                 orientation="h",
                 title=f"Maiores Altas e Quedas (CAGR) — {indicador}",
                 color="CAGR (% a.a.)",
-                color_continuous_scale=["#b91c1c", "#f1f5f9", "#1e6a3c"],
+                color_continuous_scale=[MARROM_ESCURO, "#f1f5f9", VERDE_SECUNDARIO],
                 color_continuous_midpoint=0
             )
             aplicar_barras_profissionais(fig_cagr, texto=True, orientacao="h", percentual=True)
@@ -1124,7 +1153,7 @@ with tabs[5]:
             title=f"Concentração de Mercado — Top 10 | {indicador} | {ano_fim}",
             text=conc_top10["Share (%)"].round(1).astype(str) + "%"
         )
-        fig_conc.update_traces(marker_color="#0f3d63", textposition="outside", textfont=dict(size=12, color="#334155"), cliponaxis=False)
+        fig_conc.update_traces(marker_color=VERDE_PRINCIPAL, textposition="outside", textfont=dict(size=12, color=TEXTO), cliponaxis=False)
         fig_conc.add_scatter(
             x=conc_top10["País"],
             y=conc_top10["Acumulado (%)"],
@@ -1132,7 +1161,7 @@ with tabs[5]:
             text=conc_top10["Acumulado (%)"].round(1).astype(str) + "%",
             textposition="top center",
             name="Participação acumulada (%)",
-            line=dict(color="#d97706", width=3),
+            line=dict(color=DOURADO, width=3),
             yaxis="y2"
         )
         fig_conc.update_layout(yaxis2=dict(overlaying="y", side="right", title="Acumulado (%)", range=[0, 105], showgrid=False))
