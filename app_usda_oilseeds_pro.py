@@ -620,7 +620,16 @@ exportacao = valor(base, "Exports")
 importacao = valor(base, "Imports")
 estoque = valor(base, "Ending Stocks")
 
-estoque_uso = (estoque / consumo * 100) if estoque and consumo else None
+# Estoque/Uso: para países/regiões, o "uso" é consumo doméstico + exportação
+# (a exportação é uma saída extra do balanço local). Para "Mundo", exportação
+# mundial ≈ importação mundial (é o mesmo grão contado duas vezes), então o
+# uso mundial considera apenas o consumo doméstico.
+if pais == "Mundo":
+    uso_total = consumo
+else:
+    uso_total = (consumo or 0) + (exportacao or 0)
+
+estoque_uso = (estoque / uso_total * 100) if estoque and uso_total else None
 export_prod = (exportacao / producao * 100) if exportacao and producao else None
 crush_prod = (crush / producao * 100) if crush and producao else None
 cagr_ind = cagr(base, attr_indicador)
@@ -737,7 +746,14 @@ with tabs[1]:
     pivot = base.pivot_table(index="Year", columns="Attribute", values="Value", aggfunc="sum").reset_index()
 
     if "Ending Stocks" in pivot.columns and "Domestic Consumption" in pivot.columns:
-        pivot["Estoque/Uso (%)"] = pivot["Ending Stocks"] / pivot["Domestic Consumption"] * 100
+        if pais == "Mundo":
+            pivot["Uso Total"] = pivot["Domestic Consumption"]
+        elif "Exports" in pivot.columns:
+            pivot["Uso Total"] = pivot["Domestic Consumption"] + pivot["Exports"].fillna(0)
+        else:
+            pivot["Uso Total"] = pivot["Domestic Consumption"]
+
+        pivot["Estoque/Uso (%)"] = pivot["Ending Stocks"] / pivot["Uso Total"] * 100
         fig_su = px.bar(pivot, x="Year", y="Estoque/Uso (%)", title="Estoque/Uso")
         fig_su.update_traces(marker_color=DOURADO)
         aplicar_rotulos_barra(fig_su, casas=1, percentual=True, mostrar_rotulos=mostrar_rotulos_periodo)
